@@ -19,5 +19,9 @@ Before you begin, ensure you have the following installed:
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/yacht-backend.git
-cd yacht-backend
+git clone https://github.com/ntNayan23/Yatch_Backend.git
+
+python -m venv venv  # Create a virtual environment
+source venv/bin/activate  # Activate it (Mac/Linux)
+venv\Scripts\activate  # Activate it (Windows)
+
