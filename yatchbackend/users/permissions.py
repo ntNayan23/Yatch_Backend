@@ -22,7 +22,16 @@ class IsVendor(BasePermission):
             request.user.role == 'vendor'
         )
 
-class IsAdmin(BasePermission):
+class IsAdminUserWithRole(BasePermission):
+    def has_permission(self, request, view):
+        return bool(
+            request.user and
+            request.user.is_authenticated and
+            request.user.is_staff and
+            request.user.role == 'admin'
+        )
+        
+class IsCaptain(BasePermission):
     """
     Allows access only to admin users
     """
@@ -30,13 +39,20 @@ class IsAdmin(BasePermission):
         return bool(
             request.user and
             request.user.is_authenticated and
-            request.user.role == 'admin'
+            request.user.role == 'captain'
         )
 
-class IsApprovedVendor(IsVendor):
-    """
-    Allows access only to approved vendors
-    """
+class IsApprovedVendor(BasePermission):
+    message = "Your vendor account is pending approval"
+
     def has_permission(self, request, view):
-        return super().has_permission(request, view) and \
-               request.user.vendor_profile.is_approved
+        return (
+            request.user.is_authenticated and
+            request.user.role == 'vendor' and
+            request.user.vendor_profile.approval_status == 'approved'
+        )
+        
+class IsActiveUser(BasePermission):
+    """Check if user has activated their account"""
+    def has_permission(self, request, view):
+        return request.user.is_active

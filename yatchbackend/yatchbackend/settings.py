@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
+from decouple import config
 import os
 
 load_dotenv()
@@ -41,6 +42,11 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+     'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+     'TOKEN_OBTAIN_SERIALIZER': 'your_app.serializers.CustomTokenObtainPairSerializer',
 }
 
 SIMPLE_JWT = {
@@ -61,7 +67,8 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     'drf_yasg',
-    'users'
+    'users',
+    'Booking'
 ]
 
 MIDDLEWARE = [
@@ -131,7 +138,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Kolkata"
 
 USE_I18N = True
 
@@ -150,3 +157,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWS_CREDENTIALS = True
+
+EMAIL_BACKEND = config('EMAIL_BACKEND')
+EMAIL_HOST = config('EMAIL_HOST')
+EMAIL_PORT = config('EMAIL_PORT', cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+FRONTEND_URL = 'http://127.0.0.1:8000/api/users'
