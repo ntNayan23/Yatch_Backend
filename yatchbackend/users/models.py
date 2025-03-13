@@ -81,16 +81,24 @@ class VendorProfile(models.Model):
         ('rejected', 'Rejected')
     ]
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='vendor_profile')
-    company_name = models.CharField(max_length=100, unique=True)
-    tax_id = models.CharField(max_length=30, unique=True)
-    address = models.TextField()
+    company_name = models.CharField(max_length=100, unique=True, blank=True)
+    tax_id = models.CharField(max_length=30, unique=True, blank=True)
+    address = models.TextField(blank=True)
     approval_status  = models.CharField(
         max_length=10, 
         choices=approval_status, 
         default='pending'
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    profile_completion = models.PositiveIntegerField(default=0)
+    submission_status = models.CharField(
+        max_length=20,
+        choices=[('draft', 'Draft'), ('submitted', 'Submitted')],
+        default='draft'
+    )
     
+    
+    REQUIRED_FIELDS = ['company_name', 'tax_id', 'address']
     
     @property
     def local_created_at(self):
@@ -102,7 +110,12 @@ class VendorProfile(models.Model):
     #         if original.approval_status != self.approval_status:
     #             self.send_status_notification()
     #     super().save(*args, **kwargs)
-
+    def update_completion(self):
+        completed = sum(1 for field in self.REQUIRED_FIELDS if getattr(self, field))
+        self.profile_completion = int((completed / len(self.REQUIRED_FIELDS))) * 100
+        self.save()
+        
+        
     def save(self, *args, **kwargs):
         # Get original state before saving
         if self.pk:
@@ -120,9 +133,20 @@ class VendorProfile(models.Model):
 
             
             
+    def send_admin_notification(self):
+        subject = f"New Vendor Submission: {self.company_name}"
+        message = f"Vendor {self.company_name} has submitted their profile for approval."
+        send_mail(
+            subject,
+            message,
+            settings.EMAIL_HOST_USER,
+            [settings.ADMIN_EMAIL],  # Use settings instead of hardcoded email
+            fail_silently=False,
+        )
+
     def send_status_notification(self):
-        subject = f"Vendor Approval Status Update - {self.company_name}"
-        message = f"Your vendor account status: {self.get_approval_status_display()}"
+        subject = f"Vendor Status Update - {self.company_name}"
+        message = f"Your approval status: {self.get_approval_status_display()}"
         send_mail(
             subject,
             message,
@@ -130,6 +154,8 @@ class VendorProfile(models.Model):
             [self.user.email],
             fail_silently=False,
         )
+        
+        
     
     def __str__(self):
         return f"{self.company_name} - {self.get_approval_status_display()}"
@@ -168,4 +194,3 @@ class CaptainProfile(models.Model):
     @property
     def local_Updated_at(self):
         return timezone.localtime(self.updated_at) 
-    

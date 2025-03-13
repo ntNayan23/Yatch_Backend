@@ -16,7 +16,7 @@ class CustomerDashboardView(generics.RetrieveAPIView):
 class VendorDashboardView(generics.RetrieveAPIView):
     serializer_class = VendorDashboardSerializer
     permission_classes = [IsVendor]
-    permission_classes = [IsApprovedVendor]
+    # permission_classes = [IsApprovedVendor]
 
     def get_object(self):
         return self.request.user.vendor_profile

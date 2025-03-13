@@ -117,16 +117,37 @@ class VendorRegistrationSerializer(serializers.ModelSerializer):
 class VendorProfileCompletionSerializer(serializers.ModelSerializer):
     class Meta:
         model = VendorProfile
-        fields = ['company_name', 'tax_id', 'address']
+        fields = ['company_name', 'tax_id', 'address','submission_status']
         extra_kwargs = {
             'company_name': {'required': True},
-            'tax_id': {'required': True}
+            'tax_id': {'required': True},
+            'address': {'required': True},
+            'submission_status': {'read_only': True}
         }
+        
+    def validate(self, attrs):
+        # Check if all required fields are filled
+        required_fields = ['company_name', 'tax_id', 'address']
+        if not all(attrs.get(field) for field in required_fields):
+            raise serializers.ValidationError("All profile fields must be completed")
+        return attrs
 
     def validate_tax_id(self, value):
         if not value.startswith('TAX-'):
             raise serializers.ValidationError("Tax ID must start with TAX-")
         return value
+    
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        instance.update_completion()
+        
+        # Automatically submit for approval when 100% complete
+        if instance.profile_completion == 100:
+            instance.submission_status = 'submitted'
+            instance.approval_status = 'pending'
+            instance.save()
+            
+        return instance
 
 class CaptainRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)

@@ -16,8 +16,8 @@ class UserAdmin(admin.ModelAdmin):
 
 @admin.register(VendorProfile)
 class VendorProfileAdmin(admin.ModelAdmin):
-    list_display = ('company_name', 'tax_id', 'approval_status', 'created_at','user_active_status')
-    list_filter = ('approval_status', 'created_at')
+    list_display = ('company_name', 'tax_id', 'approval_status', 'created_at','user_active_status', 'profile_completion')
+    list_filter = ('submission_status','approval_status', 'created_at')
     search_fields = ('company_name', 'tax_id', 'user__email')
     actions = ['approve_vendors', 'reject_vendors']
     readonly_fields = ('created_at',)
@@ -27,6 +27,12 @@ class VendorProfileAdmin(admin.ModelAdmin):
         return obj.user.email
     user_email.short_description = 'Vendor Email'
     
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs.filter(submission_status='submitted')
+        return qs
     
     def user_active_status(self, obj):
         return obj.user.is_active

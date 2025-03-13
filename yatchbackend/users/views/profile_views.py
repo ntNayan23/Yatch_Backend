@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import generics, status,permissions
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
@@ -17,7 +18,7 @@ from users.serializers import (
     SuperUserRegistrationSerializer,
     VendorProfileCompletionSerializer,
 )
-from users.models import User
+from users.models import User, VendorProfile
 from users.permissions import IsAdminUserWithRole, IsVendor
 
 
@@ -50,6 +51,7 @@ class VendorRegistrationView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         
+        VendorProfile.objects.create(user=user,submission_status='draft',approval_status='pending')
         return Response({
             'user': {
                 'id': user.id,
@@ -57,9 +59,10 @@ class VendorRegistrationView(generics.CreateAPIView):
                 'Last_name': user.last_name,
                 'email': user.email,
                 'role': user.role,
-                'phone': user.phone
+                'phone': user.phone,
+                'message':'Vendor account created. Complete your profile to submit for approval'
             },
-            # 'vendor_profile': VendorProfileSerializer(user.vendor_profile).data
+            'vendor_profile': VendorProfileSerializer(user.vendor_profile).data
         }, status=status.HTTP_201_CREATED)
 
 class LoginView(TokenObtainPairView):
@@ -85,19 +88,27 @@ class SuperUserRegistrationView(generics.CreateAPIView):
         
         
         
-class VendorProfileCompletionView(generics.CreateAPIView):
+# users/views.py
+class VendorProfileCompletionView(generics.UpdateAPIView):  # Changed from CreateAPIView
     serializer_class = VendorProfileCompletionSerializer
     permission_classes = [permissions.IsAuthenticated, IsVendor]
+    
+    def get_object(self):
+        return self.request.user.vendor_profile
 
-    def perform_create(self, serializer):
-        if hasattr(self.request.user, 'vendor_profile'):
-            raise ValidationError("Profile already exists")
-        serializer.save(
-            user=self.request.user,
-            approval_status='pending'  # Wait for admin approval
-        )
+    def perform_update(self, serializer):
+        instance = serializer.save()
         
-        
+        # Send notification to admin when submitted
+        if instance.submission_status == 'submitted':
+            from django.core.mail import send_mail
+            send_mail(
+                'New Vendor Approval Request',
+                f'Vendor {instance.company_name} has submitted their profile for approval.',
+                settings.EMAIL_HOST_USER,
+                [settings.ADMIN_EMAIL],
+                fail_silently=False,
+            )
         
 # class AccountActivationView(APIView):
 
